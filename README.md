@@ -71,7 +71,7 @@ set_coffee_level("Half")
 
     Returns the current state.
 
-    #### `setState(self, value, *, asynchronous=None) -> None`
+    `setState(self, value, *, asynchronous=None) -> None`
 
     Sets the state to the given value and executes the side effect.
 
@@ -81,7 +81,7 @@ set_coffee_level("Half")
 
 1. ### `side_effect` Function
 
-    #### `side_effect(default=0, side_effect=lambda: None, *, asynchronous=True) -> [getter, setter]`
+    `side_effect(default=0, side_effect=lambda: None, *, asynchronous=True) -> [getter, setter]`
 
     A convenience function to create a `SideEffect` instance and return accessor functions.
 
