@@ -1,0 +1,7 @@
+venv
+build
+dist
+sideeffect.egg-info
+
+setup.py
+requirements.txt
