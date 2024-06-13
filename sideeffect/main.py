@@ -1,7 +1,7 @@
 import threading
 from typing import Any, Callable, Optional, Tuple, Union
 
-def typecheck(obj: Any, datatype: Union[type, str], *, error_msg: str="Object {obj} is not assignable to type '{datatype}'") -> None:
+def typecheck(obj: Any, datatype: Union[type, str], *, error_msg: str = "Object {obj} is not assignable to type '{datatype}'") -> None:
     """
     Checks if the given object matches the specified datatype.
     
@@ -13,7 +13,6 @@ def typecheck(obj: Any, datatype: Union[type, str], *, error_msg: str="Object {o
     Raises:
     - TypeError: If the object does not match the expected datatype.
     """
-
     if datatype == "function":
         if not callable(obj):
             raise TypeError(
@@ -28,20 +27,22 @@ def typecheck(obj: Any, datatype: Union[type, str], *, error_msg: str="Object {o
 
 class SideEffect():
     """
-    A class to manage a state with an optional side effect that can be executed either synchronously or asynchronously when the state is changed assuming that the asynchrous operation is independent of the state.
+    A class to manage a state with an optional side effect that can be executed either synchronously or asynchronously when the state is changed.
     
     Attributes:
     - _state: The current state.
     - _side_effect: A callable to be executed as a side effect.
     - _asynchronous: A boolean indicating whether the side effect should be executed asynchronously.
+    - _dependent: A boolean indicating whether the side effect is dependent on the state.
+    - _side_effect_on_action: A boolean flag indicating if the side effect is currently in action.
+    - _side_effect_thread: The thread executing the side effect, if asynchronous.
     
     Methods:
-    - __init__(self, default=0, side_effect=lambda: None, *, asynchronous=True): Initializes the SideEffect instance.
+    - __init__(self, default=0, side_effect=lambda: None, *, asynchronous=True, dependent=False): Initializes the SideEffect instance.
     - state(self): Property to get the current state.
     - setState(self, value, *, asynchronous: bool=None): Sets the state and executes the side effect.
     """
-    
-    def __init__(self, default: Any=0, side_effect: Callable[[], None]=lambda: None, *, asynchronous: bool=True) -> None:
+    def __init__(self, default: Any = 0, side_effect: Callable[[], None] = lambda: None, *, asynchronous: bool = True, dependent: bool = False) -> None:
         """
         Initializes the SideEffect instance.
         
@@ -49,23 +50,30 @@ class SideEffect():
         - default: The initial state (default is 0).
         - side_effect: A callable to be executed as a side effect (default is a no-op lambda).
         - asynchronous: If True, the side effect is executed asynchronously (default is True).
+        - dependent: If True, the side effect is dependent on the state (default is False).
         """
-        
         self._state = default
 
         # Checking the types for the inputs
         typecheck(side_effect, "function")
         typecheck(asynchronous, bool)
+        typecheck(dependent, bool)
         
         self._side_effect = side_effect
         self._asynchronous = asynchronous
+        self._dependent = dependent
+
+        self._side_effect_on_action = False
+        self._side_effect_thread: Optional[threading.Thread] = None
 
     @property
     def state(self) -> Any:
-        """ Returns the current state. """
+        """
+        Returns the current state.
+        """
         return self._state
 
-    def setState(self, value: Any, *, asynchronous: Union[bool, None]=None) -> None:
+    def setState(self, value: Any, *, asynchronous: Optional[bool] = None) -> None:
         """
         Sets the state to the given value and executes the side effect.
         
@@ -76,22 +84,30 @@ class SideEffect():
         Raises:
         - TypeError: If the asynchronous parameter is not a boolean.
         """
-        
         # Checking the types for the inputs
-        if asynchronous != None:
+        if asynchronous is not None:
             typecheck(asynchronous, bool)
         
-        asynchronous = self._asynchronous
+        if asynchronous is None:
+            asynchronous = self._asynchronous
 
-        self._state = value
+        if self._side_effect_on_action and self._dependent:
+            self._side_effect_thread.join()
+            self._side_effect_on_action = False
+            self._side_effect_thread = None
 
         if asynchronous:
-            threading.Thread(target=self._side_effect).start()
+            side_effect_thread = threading.Thread(target=self._side_effect)
+            self._side_effect_thread = side_effect_thread
+            self._side_effect_on_action = True
+
+            self._state = value
+            self._side_effect_thread.start()
         else:
+            self._state = value
             self._side_effect()
 
-
-def side_effect(default: Any=0, side_effect: Callable[[], None]=lambda: None, *, asynchronous: bool=True) -> Tuple[Callable[[], Any], Callable[[Any, Optional[bool]], Any]]:
+def side_effect(default: Any = 0, side_effect: Callable[[], None] = lambda: None, *, asynchronous: bool = True, dependent: bool = False) -> Tuple[Callable[[], Any], Callable[[Any, Optional[bool]], None]]:
     """
     A convenience function to create a SideEffect instance and return accessor functions.
     
@@ -99,16 +115,16 @@ def side_effect(default: Any=0, side_effect: Callable[[], None]=lambda: None, *,
     - default: The initial state (default is 0).
     - side_effect: A callable to be executed as a side effect (default is a no-op lambda).
     - asynchronous: If True, the side effect is executed asynchronously (default is True).
+    - dependent: If True, the side effect is dependent on the state (default is False).
     
     Returns:
     - A tuple containing:
       - A lambda to get the current state.
       - A lambda to set the state and execute the side effect.
     """
-
-    _state = SideEffect(default, side_effect, asynchronous=asynchronous)
+    _state = SideEffect(default, side_effect, asynchronous=asynchronous, dependent=dependent)
 
     return (
-        lambda : _state.state,
-        lambda value, *, asynchronous=None: _state.setState(value, asynchronous=asynchronous)
+        lambda: _state.state,
+        lambda value, *, asynchronous=None: _state.setState(value, asynchronous=asynchronous),
     )
