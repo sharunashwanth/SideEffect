@@ -65,17 +65,26 @@ set_coffee_level("Half")
 
     Returns the current state.
 
-    `setState(self, value, *, asynchronous: Union[bool, None]=None) -> None`
+    `setState(self, value: Any, *, asynchronous: Union[bool, None]=None, cancel_side_effect: bool=False) -> None`
 
     Sets the state to the given value and executes the side effect.
 
     - `value` (Any): The new state value.
     - `asynchronous` (Union[bool, None]): If provided, overrides the instance's asynchronous setting for this call.
-    - Raises `TypeError` if the `asynchronous` parameter is not a boolean.
+    - `cancel_side_effect` (bool): If True, cancels the execution of the side effect.
+    - Raises `TypeError` if the `asynchronous` or `cancel_side_effect` parameter is not a boolean.
+
+    `disable_side_effect(self) -> None`
+
+    Disables the execution of the side effect.
+
+    `enable_side_effect(self) -> None`
+
+    Enables the execution of the side effect.
 
 1. ### `side_effect` Function
 
-    `side_effect(default=0, side_effect=lambda: None, *, asynchronous=True, dependent=False) -> Tuple[Callable[[], Any], Callable[[Any, Optional[bool]], None]]`
+    `side_effect(default=0, side_effect=lambda: None, *, asynchronous=True, dependent=False) -> Tuple[SideEffect.state, SideEffect.setState]`
 
     A convenience function to create a `SideEffect` instance and return accessor functions.
 
@@ -88,10 +97,10 @@ set_coffee_level("Half")
     - A lambda to get the current state.
     - A lambda to set the state and execute the side effect.
 
-## New Features in v1.0.3
+## New Features in v1.0.4
 
-- Added a new `dependent` parameter to the `SideEffect` class and `side_effect` function. This parameter allows you to specify whether the side effect is dependent on the state or not. If the side effect is dependent, the previous side effect will be completed before executing the new one.
-- Improved thread handling for asynchronous side effects, ensuring that the previous side effect is completed before starting a new one if the side effect is dependent on the state.
+- **Disable/Enable Side Effects**: Introduced `disable_side_effect` and `enable_side_effect` methods to temporarily pause and resume side effect execution.
+- **Cancel Side Effects**: Added a `cancel_side_effect` parameter to `setState` to allow canceling the execution of the side effect when changing the state.
 
 ## Contributing
 
