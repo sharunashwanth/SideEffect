@@ -35,7 +35,6 @@ class SideEffect():
     - _asynchronous: A boolean indicating whether the side effect should be executed asynchronously.
     - _dependent: A boolean indicating whether the side effect is dependent on the state.
     - _side_effect_paused: A boolean flag indicating if the side effect is paused.
-    - _side_effect_on_action: A boolean flag indicating if the side effect is currently in action.
     - _side_effect_thread: The thread executing the side effect, if asynchronous.
     
     Methods:
@@ -67,7 +66,6 @@ class SideEffect():
         self._dependent = dependent
         self._side_effect_paused = False
 
-        self._side_effect_on_action = False
         self._side_effect_thread: Optional[threading.Thread] = None
 
     @property
@@ -95,9 +93,8 @@ class SideEffect():
         
         if asynchronous is None: asynchronous = self._asynchronous
 
-        if self._side_effect_on_action and self._dependent:
+        if self._side_effect_thread and self._dependent:
             self._side_effect_thread.join()
-            self._side_effect_on_action = False
             self._side_effect_thread = None
 
         self._state = value
@@ -107,7 +104,6 @@ class SideEffect():
         if asynchronous:
             side_effect_thread = threading.Thread(target=self._side_effect)
             self._side_effect_thread = side_effect_thread
-            self._side_effect_on_action = True
 
             self._side_effect_thread.start()
         else:

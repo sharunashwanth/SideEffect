@@ -97,10 +97,10 @@ set_coffee_level("Half")
     - A lambda to get the current state.
     - A lambda to set the state and execute the side effect.
 
-## New Features in v1.0.4
+## New Features in v1.0.5
 
-- **Disable/Enable Side Effects**: Introduced `disable_side_effect` and `enable_side_effect` methods to temporarily pause and resume side effect execution.
-- **Cancel Side Effects**: Added a `cancel_side_effect` parameter to `setState` to allow canceling the execution of the side effect when changing the state.
+- Removed `_side_effect_on_action` attribute for improved side effect control and clarity in `SideEffect` class.
+- Enhanced thread management for more efficient side effect execution handling.
 
 ## Contributing
 
